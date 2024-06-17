@@ -7,19 +7,23 @@ from selenium.webdriver.chrome.options import Options
 import fake_useragent as fu
 from bs4 import BeautifulSoup
 
+from settings import login_proxy, password_proxy, proxy
+
 
 def installation():
     while True:
         try:
             print('test')
             useragent = fu.UserAgent().random
-            b = ChromeExtended(proxy="http://4ren8c:K1W9CM@193.124.177.248:9515", useragent=useragent)
+            b = ChromeExtended(proxy=f"http://{login_proxy}:{password_proxy}@{proxy}", useragent=useragent)
             b.get("https://megamarket.ru")
+
             page = b.page_source
             soup = BeautifulSoup(page, 'lxml')
             pr = soup.find_all('div', {'class': 'header-logo'})
             if pr:
                 print('stop')
+                print(useragent)
                 return useragent
             time.sleep(3)
         except Exception as ex:
@@ -64,7 +68,7 @@ class ChromeExtended(webdriver.Chrome):
 
 
 def find_driver(user_agent):
-    driver = ChromeExtended(proxy="http://4ren8c:K1W9CM@193.124.177.248:9515", useragent=user_agent)
+    driver = ChromeExtended(proxy=f"http://{login_proxy}:{password_proxy}@{proxy}", useragent=user_agent)
     return driver
 
 

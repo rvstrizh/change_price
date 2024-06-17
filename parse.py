@@ -1,11 +1,9 @@
 import re
 
 from bs4 import BeautifulSoup
-from selenium.webdriver.chrome.options import Options
-from selenium import webdriver
 
-from driver import installation, find_driver
-from settings import min_rating
+from driver import find_driver
+from settings import min_rating, CaptchaError
 
 
 class Parse_Page:
@@ -22,6 +20,10 @@ class Parse_Page:
         self._set_up()
         page = self.driver.page_source
         soup = BeautifulSoup(page, 'lxml')
+        pr = soup.find_all('div', {'class': 'header-logo'})
+        if not pr:
+            print('мое исключение')
+            raise CaptchaError('Вылезла капча')
         texts = soup.find_all('div', {'itemtype': 'http://schema.org/Offer'})
         for text in texts:
             bs = BeautifulSoup(str(text), 'lxml')
@@ -37,7 +39,6 @@ class Parse_Page:
             delivery = delivery_way + delivery_date
             rating = bs.find('span', {'class': 'pdp-merchant-rating-block__rating'}).text.strip()
             if float(rating) > min_rating:
-                print(delivery.lower())
                 if 'курьером' in delivery.lower() or 'забрать' in delivery.lower() or 'час' in delivery.lower():
                     delivery = "Другие службы доставки"
                 else:

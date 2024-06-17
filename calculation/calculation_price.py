@@ -1,117 +1,66 @@
-from itertools import chain
-from bs4 import BeautifulSoup
-import re
-
 from calculation.calculation_bonus import Calculation_Price_With_Bonus
+from settings import open_json
 
 
 class Price_Change:
-    def __init__(self, price_list, min_price=34000, max_price=75000, sensitivity=1500, step=10):
+    def __init__(self, price_list, min_price, max_price, sensitivity=1, step=10):
         self.price_list = price_list
         self.min_price = min_price
         self.max_price = max_price
         self.sensitivity = sensitivity
         self.step = step
 
-    def run(self):
-        price_list = {k: v for k, v in self.price_list.items() if 'Курьером СММ' in v}
-        all_prices = dict(sorted(price_list.items(), key=lambda x: x[1][0]))
+    def preparing_list(self):
         try:
-            old_my_price = all_prices['MegaPixel']  # 'MegaPixel': [67990, 642, 'Доставка по клику, ', 1]
-            del all_prices['MegaPixel']
-        except:
-            old_my_price = [1, 1, 'Доставка по клику, ', 1]
-        # prev_key - название магазина, prev_value - список [цена, кешбек, способ доставки]
-        name_shop, list_property = next(iter(all_prices.items()))
-        # сравниваем первый со вторым второй с третьим и тд
-        print(list_property)
-        for key, value in all_prices.items():
-            print(value[0], list_property[0])
-            difference = value[0] - list_property[0]
-            my_price = list_property[0] - self.step
-            print('my_price', my_price)
-            # 1510 > 1520
-            if difference > self.sensitivity:
-                print(f"Разница между {name_shop} и {key} ({list_property} и {value}): {difference}")
+            # сделать если мы одни торгуем этим товаром
+            self.old_my_price = self.price_list['MegaPixel']  # 'MegaPixel': [67990, 642, 'Доставка по клику, ', 1]
+            del self.price_list['MegaPixel']
+        except KeyError:
+            self.old_my_price = [1, 1, 'Курьером СММ']
 
-                if my_price >= self.min_price - 90:  # возможно убрать тк эту разницу можно учитывать в шаге цены
-                    final_my_price = Calculation_Price_With_Bonus(old_my_price, list_property, my_price,
-                                                                  self.min_price).run()
-                    # теперь нужно учитывать размер кешбека если он большой у меня
-                    return final_my_price
-            elif self.sensitivity == 1:
-                final_my_price = Calculation_Price_With_Bonus(old_my_price, list_property, my_price,
+        filter_delivery_price_list = [v for k, v in self.price_list.items() if 'Курьером СММ' in v]
+        sorted_price_list = sorted(filter_delivery_price_list, key=lambda x: x[0])
+        self.price_list = list(filter(lambda x: self.max_price >= x[0] >= self.min_price, sorted_price_list))
+
+    def adjust_prices(self):
+        new_price = self.max_price
+        # Обходим каждый элемент в списке цен
+        for i in range(len(self.price_list) - 1):
+            if abs(self.price_list[i + 1][0] - self.price_list[i][0]) > self.sensitivity:
+                final_my_price = Calculation_Price_With_Bonus(self.old_my_price, self.price_list[i + 1],
+                                                              self.price_list[i + 1][0] - self.step,
                                                               self.min_price).run()
-                # теперь нужно учитывать размер кешбека если он большой у меня
                 return final_my_price
 
-            name_shop, list_property = key, value
+        return new_price
 
-
-#######
-# all_prices = dict(sorted(self.price_list.items(), key=lambda x: x[1][0]))
-# my_price = all_prices['MegaPixel']  # 'MegaPixel': [67990, 642, 'Доставка по клику, ', 1]
-# del all_prices['MegaPixel']
-# shops = [s for s, _ in all_prices.items()]  # список магазинов
-# counter = 0
-# for shop in shops:
-#     counter += 1
-#     if 'Забрать' not in all_prices[shop][2]:
-#         if all_prices[shop][0] - my_price[0] != 10:
-#             return all_prices[shop][0] - 10
-######
-
-# Класс должен дать добро сохраняем ссылку для закупа или нет
-# Первая проверка по цене без кешбека на списание
-# Вторая проверка с кешбеком на начисление
-class Search_Prices_For_Purchase:
-    def __init__(self, price_list):
-        self.price_list = price_list
-        self.flag = False
-
-    def search_for_accrual(self):  # буду возвращать слово 'Накопление'
-        price_cash = [price[0] for _, price in self.price_list.items()]
-        best_price = min(price_cash)
-        price_cash.remove(best_price)
-        # может быть один товар и когда я его удаляю уже мин прайс нельзя найти
-        # например Samsung SM-X806 Galaxy Tab S8+ LTE 128Gb Black (RU)
+    def filter_sensitivity(self):
         try:
-            if best_price + best_price * 0.20 < min(price_cash):
-                self.flag = [best_price, 'Накопление']
-        except ValueError:
+            self.preparing_list()
+            if len(self.price_list) == 0:  # если нет конкурентов ставим максимальную цену
+                return self.max_price
+
+            if self.sensitivity == 1:  # чувствительность =1 прилепляемся к минимальной цене в выставленном диапазоне мин мак
+                print(self.old_my_price, self.price_list[0],
+                                                              self.price_list[0][0] - self.step,
+                                                              self.min_price)
+                final_my_price = Calculation_Price_With_Bonus(self.old_my_price, self.price_list[0],
+                                                              self.price_list[0][0] - self.step,
+                                                              self.min_price).run()
+                return final_my_price
+            else:
+                return self.adjust_prices()
+        except KeyError:
+            # дописать код что бы было уведомление в телегу что товар вымещен, но бот его не видит
             pass
 
-    def search_for_write_off(self):  # буду возвращать слово 'Списание'
-        price_cash = [[price[0], price[1]] for _, price in self.price_list.items()]
-        price_cash_ball = sorted(price_cash, key=lambda x: x[1])
-        min_price = price_cash_ball[0][0]
-        price_cash_ball = list(map(lambda x: x[0] - x[1], price_cash_ball))
-        if min_price + min_price * 0.35 < min(price_cash_ball):
-            self.flag = [best_price, 'Списание']
-
     def run(self):
-        if len(self.price_list) > 1:
-            self.search_for_accrual()
-            self.search_for_write_off()
-            return self.flag
-        else:
-            return False
+        return self.filter_sensitivity()
 
 
 if __name__ == '__main__':
-    price_list = {'Мегамаркет Москва КГТ': [35990, 1, 'Курьером СММ'],
-                  'Фирменный магазин POLARIS Вешки (со склада МегаМаркет)': [37500, 15000, 'Курьером СММ'],
-                  'Фирменный магазин POLARIS СПб (со склада МегаМаркет)': [37600, 15000, 'Курьером СММ'],
-                  'Фирменный магазин POLARIS ЕКБ (со склада МегаМаркет)': [37900, 15000, 'Курьером СММ'],
-                  'ОГО! Онлайн-гипермаркет (DSM)': [60409, 605, 'Другие службы доставки'],
-                  'Техника в быту': [73917, 740, 'Курьером СММ'],
-                  'ИП Романова Татьяна Павловна': [82721, 828, 'Курьером СММ'],
-                  'RKStore': [113220, 1133, 'Курьером СММ'],
-                  'Магазин Polaris': [49990, 11499, 'Другие службы доставки'],
-                  'ОГО! Онлайн-гипермаркет (С&C)': [60409, 605, 'Другие службы доставки']}
-    # if 'MegaPixel' in price_list:
-    #     best_price = Price_Change(price_list).run()
-    #     print(best_price)
-    # price_list = {'Ситилинк Москва Доставка': [47420, 6641, 'Доставка курьером продавца, ']}
-    pc = Price_Change(price_list).run()
+    price_list = {'М.видео': [34999, 700, 'Другие службы доставки'], 'MegaPixel': [34970, 700, 'Курьером СММ'], 'ХОБОТ (доставка МегаМаркет)': [34990, 3500, 'Курьером СММ'], 'АБСОЛЮТ ТРЕЙД Москва (со склада СберМегаМаркет)': [34990, 4550, 'Курьером СММ'], 'ТЕХНОПАРК (доставка МегаМаркет)': [34990, 700, 'Курьером СММ'], 'Smile': [34980, 700, 'Курьером СММ'], 'WITE': [34980, 700, 'Курьером СММ'], 'Эльдорадо': [34999, 700, 'Курьером СММ'], 'ХОБОТ': [34990, 3500, 'Другие службы доставки'], 'Alt-Dim': [48977, 980, 'Другие службы доставки'], 'Фотосклад Москва': [48766, 976, 'Курьером СММ'], 'Неватека': [49437, 989, 'Курьером СММ'], 'ImperiaTechno SPB': [47485, 950, 'Курьером СММ'], 'ОЛДИ': [42968, 860, 'Курьером СММ'], 'Coolstore': [39430, 789, 'Курьером СММ'], 'Tehhouse': [49932, 999, 'Курьером СММ'], 'Just.ru': [43018, 4733, 'Курьером СММ'], 'OLDI': [42954, 860, 'Другие службы доставки'], 'Фирменный магазин H-2U': [44890, 898, 'Курьером СММ'], 'ИМПЕРИЯ ТЕХНО MSK': [47485, 950, 'Курьером СММ'], 'ИМПЕРИЯ ТЕХНО': [47485, 950, 'Курьером СММ'], 'F5it Новосибирск': [39637, 6343, 'Курьером СММ'], 'GuruTV.ru': [49168, 984, 'Другие службы доставки'], 'TopElectronics': [50057, 1002, 'Другие службы доставки'], 'Topcomputer.ru': [50057, 1002, 'Другие службы доставки'], 'super100k': [51379, 1028, 'Курьером СММ'], 'www.cenam.net': [51970, 1040, 'Другие службы доставки'], 'Just a store': [55980, 1120, 'Курьером СММ'], 'ELEMENTX.Электроника': [55889, 2795, 'Курьером СММ'], 'cenam.net (север)': [51800, 1036, 'Курьером СММ'], 'CENAM.NET ( Юг )': [51800, 1036, 'Курьером СММ'], 'МегаФон | Yota - Официальный магазин': [38489, 770, 'Другие службы доставки']}
+
+    # price_list = {'MegaPixel': [35980, 1, 'Курьером СММ', 1],
+    pc = Price_Change(price_list, min_price=30990, max_price=34999, sensitivity=1, step=10).run()
     print('итог', pc)
