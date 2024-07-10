@@ -1,5 +1,5 @@
 
-price_thresholds = {4000: 0, 15000: 500, 40000: 1000, 70000: 1500, 100000: 2000, 100001: 3000}  # если кешбек выше у конкурента и цена до 3000 не меняем цену, если до 15000 делаем 500, если еще больше то 1000
+price_thresholds = {4000: 500, 15000: 1000, 40000: 1500, 70000: 2000, 100000: 3000}  # если кешбек выше у конкурента и цена до 3000 не меняем цену, если до 15000 делаем 500, если еще больше то 1000
 
 
 class Calculation_Price_With_Bonus:
@@ -21,20 +21,18 @@ class Calculation_Price_With_Bonus:
         difference_bonus = int(my_price_including_bonus) - int(price_including_bonus)
 
         if difference_bonus < 0:
-            print('ok')
             for price, discont in price_thresholds.items():
                 if self.list_property[0] > price and self.my_price - discont > self.min_price:
                     self.final_price = self.my_price - discont
         elif difference_bonus > 0:
-            # дописать если наш кешбек на много больше
-            self.final_price = self.list_property[0] + (self.list_property[1] * my_price_including_bonus) / 100
+            self.final_price = self.list_property[0] + ((self.list_property[0] * my_price_including_bonus) / 100) * 0.7
         if self.final_price > 4000 and self.final_price == self.my_price and difference_bonus < 0 and self.final_price > self.min_price:
             self.final_price = self.min_price
         return int(self.final_price)
 
 
 if __name__ == "__main__":
-    old_my_price = [35980, 1, 'Курьером СММ', 1]
+    old_my_price = [35980, 10000, 'Курьером СММ']
     list_property = [42657, 2260, 'Курьером СММ']
-    cp = Calculation_Price_With_Bonus([34970, 700, 'Курьером СММ'], [34980, 700, 'Курьером СММ'], 34970, 30990).run()
+    cp = Calculation_Price_With_Bonus([8990, 180, 'Курьером СММ'], [9590, 1727, 'Курьером СММ'], 9580, 7490).run()
     print(cp)

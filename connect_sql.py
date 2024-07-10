@@ -18,17 +18,18 @@ def read_sql():
     connection.ping()
     with connection.cursor() as cursor:
         cursor.execute("""
-            SELECT nsrf_vm_product.product_id, nsrf_vm_product.product_in_stock, nsrf_vm_product_category_xref.category_id as category, product_sku, url_SMM, local_delivery_cost as price_dbs,  rating, product_order_levels, min_price_smm, max_price_SMM, sensitivity, step
+            SELECT nsrf_vm_product.product_id, nsrf_vm_product.product_in_stock, nsrf_vm_product_category_xref.category_id as category, product_sku, url_SMM, local_delivery_cost as price_dbs,  rating, product_order_levels, min_price_smm, max_price_SMM, sensitivity, step, activate_bot
             FROM nsrf_vm_product LEFT JOIN nsrf_vm_product_type_103 
             ON nsrf_vm_product.product_id = nsrf_vm_product_type_103.product_id
             LEFT JOIN nsrf_vm_product_category_xref
             ON  nsrf_vm_product.product_id = nsrf_vm_product_category_xref.product_id
-            WHERE nsrf_vm_product.product_in_stock > 0 AND nsrf_vm_product_category_xref.category_id IN (194, 219, 299, 300, 323)
+            WHERE nsrf_vm_product_type_103.url_SMM LIKE '%megamarket%' AND nsrf_vm_product.product_in_stock > 0
+            AND activate_bot = 'да'
         """)
         with open('bd_sql.json', 'w') as f:
             json.dump(cursor.fetchall(), f, indent=4)
             # connection.close()
-
+#WHERE nsrf_vm_product.product_in_stock > 0 AND nsrf_vm_product_category_xref.category_id IN (194, 219, 299, 300, 323, 206, 257, 204, 319, 167)
 
 def write_sql(new_price, product_id):
     connection.ping()

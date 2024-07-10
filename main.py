@@ -3,22 +3,38 @@ import time
 import schedule
 from datetime import datetime
 import xlsxwriter
+from aiogram.utils import executor
+import threading
 
+from threading import Thread
+from bot_change_price import dp
 from connect_sql import read_sql
 from driver import installation
 from parse import Parse_Page
-from calculation.calculation_purchase import Search_Prices_For_Purchase
-from calculation.calculation_price import Price_Change
-from settings import CaptchaError, category_dict, bot, open_json
+from calculation_purchase import Search_Prices_For_Purchase
+from calculation_price import Price_Change
+from settings import CaptchaError, category_dict, bot, open_json, got_notice
+from openpyxl import load_workbook
 
 
 def create_file():
-    names = ['Roman', 'Dmitriy', 'Andrey_P']
+    names = ["Roman", "Dmitriy", "Andrey_P", "Sergey", "Andrey_K"]
+    with open(f'./not_notice.json', 'w', encoding='utf-8') as f:
+        json.dump({}, f)
     for name in names:
-        name_file = f'./offers_price/{name}.xlsx'
+        with open(f'./offers_price/{name}/{name}.json', 'w', encoding='utf-8') as f:
+            json.dump({}, f)
+        name_file = f'./offers_price/{name}/{name}.xlsx'
         workbook = xlsxwriter.Workbook(name_file)
-        workbook.add_worksheet()
+        workbook.add_worksheet('Списание')
+        workbook.add_worksheet('Накопление')
         workbook.close()
+        wb = load_workbook(name_file)
+        for sheet in ['Списание', 'Накопление']:
+            sheets = wb[sheet]
+            sheets[f'A1'], sheets[f'B1'], sheets[f'C1'], sheets[f'D1'] = \
+                "Название", "Ссылка", "Цена", "Разница в процентах"
+            wb.save(name_file)
 
 
 def write_json(price):
@@ -41,6 +57,8 @@ class Main:
         self.max_price = None
         self.sensitivity = None
         self.step = None
+        self.manager = None
+        self.manager_tel_id = None
         # self.user_agent = installation()
         self.user_agent ='Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36'
 
@@ -52,26 +70,25 @@ class Main:
             except CaptchaError:
                 self.user_agent = installation()
 
-    def new_price(self):
-        price_list = self.parse(self.url_smm)
+    def new_price(self, price_list):
         ######
         print(price_list)
         #####
-        if self.stock:
-            if 'MegaPixel' not in price_list:
-                # поставить сигнал боту что силениум не нашел наш магазин, хотя товар в наличии
-                bot.send_message(1315757744, f'Не нашел наш магазин,на товар sku {self.product_id} хотя наличие в админке проставлено убедись точно вот ссылка:\n{self.url_smm}')
-                Search_Prices_For_Purchase(price_list, self.category, self.product_name, self.url_smm, self.old_my_price).run()
-            return Price_Change(price_list, self.min_price, self.max_price, self.sensitivity, self.step).run()
-        else:
-            # прописать с товаром которого нет в наличии, но нам нужно посмотреть карточку на выгодный кешбек и просто на низкую цену
-            pass
+        if 'MegaPixel' not in price_list:
+            # поставить сигнал боту что силениум не нашел наш магазин, хотя товар в наличии
+            bot.send_message(self.manager_tel_id, f'Не нашел наш магазин,на товар sku {self.product_id} хотя наличие в админке проставлено убедись точно вот ссылка:\n{self.url_smm}')
+
+        # Search_Prices_For_Purchase(price_list, self.manager, self.manager_tel_id, self.product_name, self.url_smm,
+        #                            self.old_my_price).run()
+        # прописать с товаром которого нет в наличии, но нам нужно посмотреть карточку на выгодный кешбек и просто на низкую цену
+        return Price_Change(price_list, self.min_price, self.max_price, self.sensitivity, self.step).run()
 
     def run(self):
+        bot.set_webhook()
         for i in range(1):
         # while True:
             current_hour = datetime.now().hour
-            if 12 <= current_hour < 23:
+            if 7 <= current_hour < 24:
                 json_file = open_json('bd_sql.json')
                 if json_file:
                     self.product_name = json_file[0]['product_sku']
@@ -84,20 +101,43 @@ class Main:
                     self.sensitivity = json_file[0]['sensitivity']
                     self.step = json_file[0]['step']
                     self.stock = json_file[0]['product_in_stock']
+                    self.old_my_price = int(self.old_my_price.replace("0,", ""))
+                    try:
+                        self.manager = [man for man, cat in category_dict.items() if self.category in cat][0]
+                        self.manager_tel_id = [k for k, v in open_json('data.json').items() if v == self.manager][0]
+                    except IndexError:
+                        self.manager = 'Roman'
+                        self.manager_tel_id = 1315757744 # когда manager_tel_id не задан
+                        if got_notice(self.product_id, self.product_name): # что бы не спамить, а уведомление будет один раз в день
+                            bot.send_message(1315757744, f'Категория № {self.category} не внесена в список категорий менеджеров')
+                    if self.url_smm:
+                        price_list = self.parse(self.url_smm)
+                        if self.stock:
+                            if all([self.min_price, self.max_price]):
+                                if self.min_price < self.max_price:
+                                    new_price = self.new_price(price_list)
+                                    # write_sql(new_price, product_id) изменение цены в sql
+                                    # временное дополнение что бы не менять автоматом цену
+                                    if self.old_my_price != new_price:
+                                        bot.send_message(self.manager_tel_id, f'Поменяй цену sku {self.product_id} на {new_price} вот тебе ссылка на мегамаркет {self.url_smm}')
+                                else:
+                                    if got_notice(self.product_id,
+                                                  self.product_name):  # что бы не спамить, а уведомление будет один раз в день
+                                        bot.send_message(self.manager_tel_id, f'В sku {self.product_id} минимальная цена, больше максимальной')
+                            else:
+                                if got_notice(self.product_id,
+                                              self.product_name):  # что бы не спамить, а уведомление будет один раз в день
+                                    bot.send_message(self.manager_tel_id, f'В товаре {self.product_name} sku {self.product_id}\nmin_price = {self.min_price}\nmax_price = {self.max_price}')
 
-                    if all([self.url_smm, self.min_price, self.max_price]):
-                        self.old_my_price = int(self.old_my_price.replace("0,", ""))
-                        new_price = self.new_price()
-                        # write_sql(new_price, product_id) изменение цены в sql
-                        # временное дополнение что бы не менять автоматом цену
-                        if self.old_my_price != new_price:
-                            bot.send_message(1315757744, f'Поменяй цену sku {self.product_id} на {new_price} вот тебе ссылка на мегамаркет {self.url_smm}')
-                        write_json(json_file[1:])
+                        Search_Prices_For_Purchase(price_list, self.manager, self.manager_tel_id, self.product_name,
+                                                   self.url_smm,
+                                                   self.old_my_price).run()
                     else:
-                        write_json(json_file[1:])
-                        manager = [man for man, cat in category_dict.items() if self.category in cat]
-                        m = [k for k, v in open_json('data.json').items() if v == manager[0]]
-                        bot.send_message(m[0], f'В товаре {self.product_name} sku {self.product_id}\nurl_smm = {self.url_smm}\nmin_price = {self.min_price}\nmax_price = {self.max_price}')
+                        bot.set_webhook()
+                        if got_notice(self.product_id,
+                                      self.product_name):  # что бы не спамить, а уведомление будет один раз в день
+                            bot.send_message(self.manager_tel_id, f'В товаре {self.product_name} sku {self.product_id}\nНе заполнено url_smm')
+                    write_json(json_file[1:])
                 else:
                     read_sql()
 
@@ -107,4 +147,7 @@ class Main:
 
 if __name__ == "__main__":
     # print(open_json('data.json'))
+
     Main().run()
+    executor.start_polling(dp, skip_updates=True)
+    # create_file()
