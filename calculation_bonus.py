@@ -11,7 +11,7 @@ class Calculation_Price_With_Bonus:
         self.final_price = my_price
 
     def run(self):
-        if self.old_my_price[0] == 1:
+        if self.old_my_price[1] == 1:
             if self.final_price < self.min_price:
                 return self.min_price
             else:
@@ -34,5 +34,5 @@ class Calculation_Price_With_Bonus:
 if __name__ == "__main__":
     old_my_price = [35980, 10000, 'Курьером СММ']
     list_property = [42657, 2260, 'Курьером СММ']
-    cp = Calculation_Price_With_Bonus([8990, 180, 'Курьером СММ'], [9590, 1727, 'Курьером СММ'], 9580, 7490).run()
+    cp = Calculation_Price_With_Bonus([114980, 11201, 'Курьером СММ'], [114990, 9201, 'Курьером СММ'], 114980, 112562).run()
     print(cp)

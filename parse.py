@@ -31,7 +31,7 @@ class Parse_Page:
                 shop = bs.find('span', {'class': 'pdp-merchant-rating-block__merchant-name'}).get_text(
                     strip=True)
                 rating = bs.find('span', {'class': 'pdp-merchant-rating-block__rating'}).text.strip()
-            except AttributeError as f:
+            except AttributeError as f: # если название магазина "выгодное предложение" оно как картинка а не текст
                 shop = 'Выгодное предложение!'
                 rating = 5
             price = int(re.sub(r"[\s,₽]", "", bs.find('span',
@@ -49,11 +49,14 @@ class Parse_Page:
                     delivery = "Курьером СММ"
                 self.price_list[shop] = [price, bonus, delivery]
         if not self.price_list:
-            shop = soup.find('span', {'class': 'pdp-merchant-rating-block__merchant-name'}).get_text(
-                strip=True)
-            price = soup.find('span', {'class': 'sales-block-offer-price__price-final'}).get_text(
-                strip=True).replace(' ', '')[:-1]
-            self.price_list[shop] = [int(price), 1, 'Курьером СММ']
+            try:
+                shop = soup.find('span', {'class': 'pdp-merchant-rating-block__merchant-name'}).get_text(
+                    strip=True)
+                price = soup.find('span', {'class': 'sales-block-offer-price__price-final'}).get_text(
+                    strip=True).replace(' ', '')[:-1]
+                self.price_list[shop] = [int(price), 1, 'Курьером СММ']
+            except AttributeError:
+                pass
         return self.price_list
 
 

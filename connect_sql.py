@@ -31,6 +31,7 @@ def read_sql():
             # connection.close()
 #WHERE nsrf_vm_product.product_in_stock > 0 AND nsrf_vm_product_category_xref.category_id IN (194, 219, 299, 300, 323, 206, 257, 204, 319, 167)
 
+
 def write_sql(new_price, product_id):
     connection.ping()
     with connection.cursor() as cursor:

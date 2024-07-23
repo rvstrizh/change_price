@@ -15,12 +15,21 @@ class Price_Change:
             self.old_my_price = self.price_list['MegaPixel']  # 'MegaPixel': [67990, 642, 'Доставка по клику, ', 1]
             del self.price_list['MegaPixel']
         except KeyError:
-            self.old_my_price = [1, 1, 'Курьером СММ']
+            self.old_my_price = [100, 1, 'Курьером СММ']
 
         filter_delivery_price_list = [v for k, v in self.price_list.items() if 'Курьером СММ' in v]
-        sorted_price_list = sorted(filter_delivery_price_list, key=lambda x: x[0])
+        sorted_price_list = {item[0]: item for item in sorted(filter_delivery_price_list, key=lambda x: (x[0], x[1]))}
+        sorted_price_list = list(sorted_price_list.values())
         self.price_list = list(filter(lambda x: self.max_price >= x[0] >= self.min_price, sorted_price_list))
-        print(self.price_list)
+
+    def comparison_neighboring_price(self):
+        percent_my_bonus = int(self.old_my_price[1] * 100 / self.old_my_price[0])
+        percent_first_element = int(self.price_list[0][1] * 100 / self.price_list[0][0])
+        percent_second_element = int(self.price_list[1][1] * 100 / self.price_list[1][0])
+        if percent_first_element < percent_my_bonus <= percent_second_element:
+            return self.price_list[1]
+        else:
+            return self.price_list[0]
 
     def adjust_prices(self):
         new_price = self.price_list[0][0] - self.step
@@ -41,11 +50,12 @@ class Price_Change:
 
             if self.sensitivity == 0:  # чувствительность =0 прилепляемся к минимальной цене в выставленном диапазоне мин мак
                 # [20923, 1674, 'Курьером СММ'] [20890, 418, 'Курьером СММ'] 20390 18990
-                print(self.old_my_price, self.price_list[0],
-                                                              self.price_list[0][0] - self.step,
+                list_property = self.comparison_neighboring_price()
+                print(self.old_my_price, list_property,
+                                                              list_property[0] - self.step,
                                                               self.min_price)
-                final_my_price = Calculation_Price_With_Bonus(self.old_my_price, self.price_list[0],
-                                                              self.price_list[0][0] - self.step,
+                final_my_price = Calculation_Price_With_Bonus(self.old_my_price, list_property,
+                                                              list_property[0] - self.step,
                                                               self.min_price).run()
                 return final_my_price
             else:
@@ -59,8 +69,20 @@ class Price_Change:
 
 
 if __name__ == '__main__':
-    price_list = {'Resanta (Техномир)': [22151, 8198, 'Курьером СММ'], 'Ситилинк Москва Доставка': [20890, 418, 'Другие службы доставки'], 'Группа компаний Ресанта': [22152, 8198, 'Курьером СММ'], 'Официальный магазин РЕСАНТА | HUTER | ВИХРЬ': [21929, 8115, 'Курьером СММ'], 'Alt-Dim': [25770, 516, 'Другие службы доставки'], 'RESANTA_GLOBAL': [20890, 418, 'Курьером СММ'], 'GARDEN-MARKET': [20890, 3970, 'Курьером СММ'], 'Официальный производитель РЕСАНТА, HUTER, ВИХРЬ': [20890, 418, 'Курьером СММ'], 'Техника для профессионалов': [20890, 209, 'Курьером СММ'], 'MEGABOLT': [20890, 418, 'Курьером СММ'], 'ИНСТРУМЕНТКЛУБ': [20890, 3761, 'Курьером СММ'], 'UTAKE': [20890, 1045, 'Курьером СММ'], 'MegaPixel': [20923, 1674, 'Курьером СММ'], 'БВ Онлайн': [21774, 436, 'Курьером СММ'], 'HOLODILNIK.RU (Юг)': [21999, 2640, 'Курьером СММ'], 'БВ Москва': [21200, 424, 'Другие службы доставки'], 'HOLODILNIK.RU(БСТ)': [21499, 645, 'Другие службы доставки'], 'HOLODILNIK.RU': [21499, 645, 'Другие службы доставки'], 'Resanta_official': [22470, 8316, 'Курьером СММ'], 'СтройСам': [22560, 452, 'Курьером СММ'], 'super100k': [22937, 459, 'Курьером СММ'], 'ИМПЕРИЯ ТЕХНО (ДСМ)': [22380, 448, 'Другие службы доставки'], 'ООО «ЭЛЬТ» (DBS)': [22623, 453, 'Другие службы доставки'], 'ИМПЕРИЯ ТЕХНО MSK': [23580, 472, 'Курьером СММ'], 'ImperiaTechno SPB': [23580, 472, 'Курьером СММ'], 'ИМПЕРИЯ ТЕХНО': [23580, 472, 'Курьером СММ'], 'ATmarket': [24064, 482, 'Курьером СММ'], 'embeq.store': [23240, 465, 'Другие службы доставки'], 'Tehhouse': [24460, 490, 'Курьером СММ'], 'Original Store РЕСАНТА | HUTER | ВИХРЬ': [24576, 9095, 'Курьером СММ'], 'AVTO-1': [23850, 477, 'Другие службы доставки'], 'Кузьма онлайн+': [24859, 4227, 'Курьером СММ'], 'КузьмаМск': [24859, 4227, 'Курьером СММ'], 'MEGA': [24000, 480, 'Другие службы доставки'], 'ЛИНИЯ': [24000, 480, 'Другие службы доставки'], 'ELEMENTX.Инструменты': [27199, 1360, 'Курьером СММ'], 'Topcomputer.ru': [25509, 511, 'Другие службы доставки'], 'TopElectronics': [25509, 511, 'Другие службы доставки'], 'Mnogo.online': [31590, 632, 'Другие службы доставки'], 'Хозяин 43': [20890, 418, 'Курьером СММ'], 'ГК Ресанта (Краснодар)': [22140, 8193, 'Курьером СММ'], 'ООО ТД "Техстроймаркет"': [21880, 438, 'Курьером СММ'], 'ГК Ресанта (Ставрополь)': [22140, 8193, 'Курьером СММ'], 'ГК Ресанта (Сочи)': [22140, 8193, 'Курьером СММ'], 'ГК Ресанта (Центр)': [22574, 8353, 'Курьером СММ'], 'уДачный Фермер FBS': [23801, 477, 'Курьером СММ'], 'уДачный Фермер': [24587, 4181, 'Курьером СММ']}
-
+    price_list = {'Pixel':[114320, 2287, 'Курьером СММ'],
+                  'ixel': [114990, 9201, 'Курьером СММ'],
+                  'MegaPixel':[114980, 9201, 'Курьером СММ'],
+                  'xel':[115236, 9221, 'Курьером СММ'],
+                  'el':[115271, 9223, 'Курьером СММ'],
+                  'l':[115281, 9225, 'Курьером СММ'],
+                  'M':[115286, 9225, 'Курьером СММ'],
+                  'Me':[115291, 9225, 'Курьером СММ'],
+                  'Meg':[115899, 9273, 'Курьером СММ'],
+                  'Mega':[115990, 2320, 'Курьером СММ'],
+                  'MegaP':[116900, 9353, 'Курьером СММ'],
+                  'MegaPi':[117500, 9401, 'Курьером СММ'],
+                  'MegaPix':[117990, 9441, 'Курьером СММ'],
+                  'MegaPixe':[118000, 2360, 'Курьером СММ']}
     # price_list = {'MegaPixel': [35980, 1, 'Курьером СММ', 1],
-    pc = Price_Change(price_list, min_price=18990, max_price=21890, sensitivity=0, step=10).run()
+    pc = Price_Change(price_list, min_price=112562, max_price=126271, sensitivity=0, step=10).run()
     print('итог', pc)

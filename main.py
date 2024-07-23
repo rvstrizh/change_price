@@ -8,7 +8,7 @@ import threading
 
 from threading import Thread
 from bot_change_price import dp
-from connect_sql import read_sql
+from connect_sql import read_sql, write_sql
 from driver import installation
 from parse import Parse_Page
 from calculation_purchase import Search_Prices_For_Purchase
@@ -76,7 +76,8 @@ class Main:
         #####
         if 'MegaPixel' not in price_list:
             # поставить сигнал боту что силениум не нашел наш магазин, хотя товар в наличии
-            bot.send_message(self.manager_tel_id, f'Не нашел наш магазин,на товар sku {self.product_id} хотя наличие в админке проставлено убедись точно вот ссылка:\n{self.url_smm}')
+            if got_notice(self.product_id, self.product_name):
+                bot.send_message(self.manager_tel_id, f'Не нашел наш магазин,в карточке товара sku {self.product_id}, хотя наличие в админке проставлено, убедись точно, вот ссылка:\n{self.url_smm}')
 
         # Search_Prices_For_Purchase(price_list, self.manager, self.manager_tel_id, self.product_name, self.url_smm,
         #                            self.old_my_price).run()
@@ -116,9 +117,10 @@ class Main:
                             if all([self.min_price, self.max_price]):
                                 if self.min_price < self.max_price:
                                     new_price = self.new_price(price_list)
-                                    # write_sql(new_price, product_id) изменение цены в sql
                                     # временное дополнение что бы не менять автоматом цену
                                     if self.old_my_price != new_price:
+                                        # if self.category in category_dict['Roman']:
+                                        #     write_sql(new_price, self.product_id) # изменение цены в sql
                                         bot.send_message(self.manager_tel_id, f'Поменяй цену sku {self.product_id} на {new_price} вот тебе ссылка на мегамаркет {self.url_smm}')
                                 else:
                                     if got_notice(self.product_id,
@@ -137,8 +139,10 @@ class Main:
                         if got_notice(self.product_id,
                                       self.product_name):  # что бы не спамить, а уведомление будет один раз в день
                             bot.send_message(self.manager_tel_id, f'В товаре {self.product_name} sku {self.product_id}\nНе заполнено url_smm')
-                    write_json(json_file[1:])
+                    # write_json(json_file[1:])
                 else:
+                    bot.send_message(1315757744,
+                                     f'Прошел круг')
                     read_sql()
 
             schedule.run_pending()

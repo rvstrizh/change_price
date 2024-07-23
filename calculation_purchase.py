@@ -28,7 +28,7 @@ class Search_Prices_For_Purchase:
             sheets = self.wb[sheet]
             last_filled_row = sheets.max_row + 1
             sheets[f'A{last_filled_row}'], sheets[f'B{last_filled_row}'], sheets[f'C{last_filled_row}'], sheets[f'D{last_filled_row}'] = \
-                self.product_name, self.url_smm, min_price, difference_price
+                self.product_name, self.url_smm, min_price, int(difference_price)
             self.wb.save(self.name_file)
 
     def search_for_accrual(self):  # буду возвращать слово 'Накопление'
@@ -46,11 +46,11 @@ class Search_Prices_For_Purchase:
         sorted_price_list = sorted(self.price_list, key=lambda x: x[0])
         if self.old_my_price > 2:
             if self.old_my_price * 0.8 > min_price:
-                difference_price = min_price * 100 / self.old_my_price
+                difference_price = 100 - min_price * 100 / self.old_my_price
                 self.save_price(min_price, 'Списание', difference_price)
                 # bot.send_message(self.manager_tel_id, text=f'Списание\n<a href="{self.url_smm}">{self.product_name}</a>', parse_mode='HTML')
             elif sorted_price_list[1][0] * 0.8 > sorted_price_list[0][0]:
-                difference_price = sorted_price_list[0][0] * 100 / sorted_price_list[1][0]
+                difference_price = 100 - sorted_price_list[0][0] * 100 / sorted_price_list[1][0]
                 self.save_price(min_price, 'Списание', difference_price)
                 # bot.send_message(self.manager_tel_id, text=f'Списание\n<a href="{self.url_smm}">{self.product_name}</a>', parse_mode='HTML')
         else:

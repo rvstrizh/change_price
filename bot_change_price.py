@@ -26,7 +26,7 @@ async def send_welcome(message: types.Message):
         [types.KeyboardButton(text="Andrey_K")],
     ]
     keyboard = types.ReplyKeyboardMarkup(keyboard=kb)
-    await message.answer("Привет!\nСюда Вы будете получать сообщения:\n1) Если не правильно заполнили КЦ в карточке товара.\n2) Если вы хотите получить файл с выгодными предложениями для закупки на СММ.")
+    # await message.answer("Привет!\nСюда Вы будете получать сообщения:\n1) Если не правильно заполнили КЦ в карточке товара.\n2) Если вы хотите получить файл с выгодными предложениями для закупки на СММ.")
     await message.answer("Выберите Ваше Имя", reply_markup=keyboard)
 
 
@@ -37,9 +37,11 @@ async def greet_user(message: types.Message):
     manage[message.from_user.id] = message.text
     with open('data.json', 'w') as f:
         json.dump(manage, f)
-    kb = [[types.KeyboardButton(text="Получить прайс")]]
-    await message.answer(f"Теперь Вы можете получать прайс выгодных предложений на СММ\nи уведомления", reply_markup=types.ReplyKeyboardRemove())
-    await message.answer("Для этого нужно нажать кнопку", reply_markup=types.ReplyKeyboardMarkup(keyboard=kb))
+    await message.answer(f"Отлично!",
+                         reply_markup=types.ReplyKeyboardRemove())
+    # kb = [[types.KeyboardButton(text="Получить прайс")]]
+    # await message.answer(f"Теперь Вы можете получать прайс выгодных предложений на СММ\nи уведомления", reply_markup=types.ReplyKeyboardRemove())
+    # await message.answer("Для этого нужно нажать кнопку", reply_markup=types.ReplyKeyboardMarkup(keyboard=kb))
 
 
 @dp.message_handler(text='Получить прайс')
