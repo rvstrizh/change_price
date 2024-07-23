@@ -45,12 +45,16 @@ class Price_Change:
     def filter_sensitivity(self):
         try:
             self.preparing_list()
+            print('self.price_list', self.price_list)
             if len(self.price_list) == 0:  # если нет конкурентов ставим максимальную цену
                 return self.max_price
 
             if not self.sensitivity:  # чувствительность =0 или не заполнено прилепляемся к минимальной цене в выставленном диапазоне мин мак
                 # [20923, 1674, 'Курьером СММ'] [20890, 418, 'Курьером СММ'] 20390 18990
-                list_property = self.comparison_neighboring_price()
+                if len(self.price_list) == 1:
+                    list_property = self.price_list[0]
+                else:
+                    list_property = self.comparison_neighboring_price()
                 print(self.old_my_price, list_property,
                                                               list_property[0] - self.step,
                                                               self.min_price)
@@ -69,20 +73,10 @@ class Price_Change:
 
 
 if __name__ == '__main__':
-    price_list = {'Pixel':[114320, 2287, 'Курьером СММ'],
-                  'ixel': [114990, 9201, 'Курьером СММ'],
-                  'MegaPixel':[114980, 9201, 'Курьером СММ'],
-                  'xel':[115236, 9221, 'Курьером СММ'],
-                  'el':[115271, 9223, 'Курьером СММ'],
-                  'l':[115281, 9225, 'Курьером СММ'],
-                  'M':[115286, 9225, 'Курьером СММ'],
-                  'Me':[115291, 9225, 'Курьером СММ'],
-                  'Meg':[115899, 9273, 'Курьером СММ'],
-                  'Mega':[115990, 2320, 'Курьером СММ'],
-                  'MegaP':[116900, 9353, 'Курьером СММ'],
-                  'MegaPi':[117500, 9401, 'Курьером СММ'],
-                  'MegaPix':[117990, 9441, 'Курьером СММ'],
-                  'MegaPixe':[118000, 2360, 'Курьером СММ']}
+    price_list = {'Официальный магазин VIVO Вешки (со склада МегаМаркет)': [10300, 206, 'Курьером СММ'],
+                  'Digital World': [14599, 292, 'Курьером СММ'],
+                  'MegaPixel': [17345, 347, 'Курьером СММ']}
+
     # price_list = {'MegaPixel': [35980, 1, 'Курьером СММ', 1],
-    pc = Price_Change(price_list, min_price=112562, max_price=126271, sensitivity=0, step=10).run()
+    pc = Price_Change(price_list, min_price=11390, max_price=14990, sensitivity=None, step=100).run()
     print('итог', pc)
