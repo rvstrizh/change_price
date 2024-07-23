@@ -48,7 +48,7 @@ class Price_Change:
             if len(self.price_list) == 0:  # если нет конкурентов ставим максимальную цену
                 return self.max_price
 
-            if self.sensitivity == 0:  # чувствительность =0 прилепляемся к минимальной цене в выставленном диапазоне мин мак
+            if not self.sensitivity:  # чувствительность =0 или не заполнено прилепляемся к минимальной цене в выставленном диапазоне мин мак
                 # [20923, 1674, 'Курьером СММ'] [20890, 418, 'Курьером СММ'] 20390 18990
                 list_property = self.comparison_neighboring_price()
                 print(self.old_my_price, list_property,
