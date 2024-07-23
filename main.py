@@ -13,7 +13,7 @@ from driver import installation
 from parse import Parse_Page
 from calculation_purchase import Search_Prices_For_Purchase
 from calculation_price import Price_Change
-from settings import CaptchaError, category_dict, bot, open_json, got_notice
+from settings import CaptchaError, category_dict, bot, open_json, got_notice, past_site
 from openpyxl import load_workbook
 
 
@@ -86,8 +86,8 @@ class Main:
 
     def run(self):
         bot.set_webhook()
-        for i in range(1):
-        # while True:
+        # for i in range(1):
+        while True:
             current_hour = datetime.now().hour
             if 7 <= current_hour < 24:
                 json_file = open_json('bd_sql.json')
@@ -110,26 +110,33 @@ class Main:
                         self.manager = 'Roman'
                         self.manager_tel_id = 1315757744 # когда manager_tel_id не задан
                         if got_notice(self.product_id, self.product_name): # что бы не спамить, а уведомление будет один раз в день
-                            bot.send_message(1315757744, f'Категория № {self.category} не внесена в список категорий менеджеров')
+                            bot.send_message(1315757744, f'Категория № {self.category} товар\n'
+                                                         f'{self.product_name}\n'
+                                                         f'не внесен в список категорий менеджеров')
                     if self.url_smm:
                         price_list = self.parse(self.url_smm)
                         if self.stock:
-                            if all([self.min_price, self.max_price]):
+                            if all([self.min_price, self.max_price, self.step]):
                                 if self.min_price < self.max_price:
                                     new_price = self.new_price(price_list)
                                     # временное дополнение что бы не менять автоматом цену
                                     if self.old_my_price != new_price:
                                         # if self.category in category_dict['Roman']:
                                         #     write_sql(new_price, self.product_id) # изменение цены в sql
-                                        bot.send_message(self.manager_tel_id, f'Поменяй цену sku {self.product_id} на {new_price} вот тебе ссылка на мегамаркет {self.url_smm}')
+                                        bot.send_message(self.manager_tel_id,
+                                                         f'Поменял цену sku {past_site(self.product_id)}\n'
+                                                         f'{self.product_name}\n'
+                                                         f'на {new_price}, вот тебе ссылка на мегамаркет\n'
+                                                         f'{self.url_smm}', parse_mode='HTML')
                                 else:
                                     if got_notice(self.product_id,
                                                   self.product_name):  # что бы не спамить, а уведомление будет один раз в день
-                                        bot.send_message(self.manager_tel_id, f'В sku {self.product_id} минимальная цена, больше максимальной')
+                                        bot.send_message(self.manager_tel_id, f'В sku {past_site(self.product_id)} {self.product_name}'
+                                                                              f'\nминимальная цена, больше максимальной', parse_mode='HTML')
                             else:
                                 if got_notice(self.product_id,
                                               self.product_name):  # что бы не спамить, а уведомление будет один раз в день
-                                    bot.send_message(self.manager_tel_id, f'В товаре {self.product_name} sku {self.product_id}\nmin_price = {self.min_price}\nmax_price = {self.max_price}')
+                                    bot.send_message(self.manager_tel_id, f'В товаре {self.product_name} sku {past_site(self.product_id)}\nmin_price = {self.min_price}\nmax_price = {self.max_price}', parse_mode='HTML')
 
                         Search_Prices_For_Purchase(price_list, self.manager, self.manager_tel_id, self.product_name,
                                                    self.url_smm,
@@ -138,8 +145,8 @@ class Main:
                         bot.set_webhook()
                         if got_notice(self.product_id,
                                       self.product_name):  # что бы не спамить, а уведомление будет один раз в день
-                            bot.send_message(self.manager_tel_id, f'В товаре {self.product_name} sku {self.product_id}\nНе заполнено url_smm')
-                    # write_json(json_file[1:])
+                            bot.send_message(self.manager_tel_id, f'В товаре {self.product_name} sku {past_site(self.product_id)}\nНе заполнено url_smm', parse_mode='HTML')
+                    write_json(json_file[1:])
                 else:
                     bot.send_message(1315757744,
                                      f'Прошел круг')
