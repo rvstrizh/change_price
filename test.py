@@ -1,2 +1,124 @@
-price_list = {'SIBDROID (МОСКВА)': [98510, 0, 'Другие службы доставки'], 'MTS Shop': [153989, 3080, 'Другие службы доставки'], 'Guru Mobile': [107460, 2150, 'Курьером СММ'], 'Арбузик': [109500, 2190, 'Курьером СММ'], 'БОЛТУН': [109727, 8781, 'Курьером СММ'], 'TechXpress': [110365, 2208, 'Курьером СММ'], 'МОБИЛ-ЛЭНД': [110370, 2208, 'Курьером СММ'], 'ИП Командиров': [110390, 2208, 'Курьером СММ'], 'Bull Store': [110440, 2209, 'Курьером СММ'], 'Galaxy': [111190, 2224, 'Курьером СММ'], 'СОТОВИКmobile': [111000, 2220, 'Другие службы доставки'], 'Krainev Store': [113710, 2275, 'Курьером СММ'], 'MegaPixel': [114980, 9201, 'Курьером СММ'], 'TechnoHub': [114990, 9201, 'Курьером СММ'], 'ИП Кузнецова Татьяна Владимировна': [115236, 9221, 'Курьером СММ'], 'AndroidMegaMarket': [115271, 9223, 'Курьером СММ'], 'Digital Dreams': [115281, 9225, 'Курьером СММ'], 'Gadgetonik': [115286, 9225, 'Курьером СММ'], 'Galaxy Android': [115291, 9225, 'Курьером СММ'], 'MegaMatrix': [115899, 9273, 'Курьером СММ'], 'Mobile4': [115990, 2320, 'Курьером СММ'], 'WAYTEK': [116580, 2332, 'Курьером СММ'], 'AudiA7': [117990, 9441, 'Курьером СММ'], 'Mobile city': [118000, 2360, 'Курьером СММ'], 'Gadget KG': [118330, 2367, 'Курьером СММ'], 'telefontut.ru': [119900, 2398, 'Другие службы доставки'], 'Proven Trust': [130580, 2612, 'Курьером СММ'], 'Tech Store': [139914, 2799, 'Курьером СММ'], 'OneMobile': [107450, 2149, 'Курьером СММ'], 'НаCвязи': [111660, 2234, 'Курьером СММ']}
-print(len(price_list))
+# code below tested & working as of Nov 2023
+
+# module versions used in example below
+# selenium==4.14.0
+# selenium-wire==5.1.0
+# webdriver-manager==4.0.1
+
+from seleniumwire import webdriver
+from bs4 import BeautifulSoup
+
+SCRAPEOPS_API_KEY = 'Ye19a7a05-ee1e-4fed-ad48-e7cfe824044a'
+NUM_RETRIES = 2
+
+proxy_options = {
+    'proxy': {
+        'http': f'http://scrapeops.headless_browser_mode=true:{SCRAPEOPS_API_KEY}@proxy.scrapeops.io:5353',
+        'https': f'http://scrapeops.headless_browser_mode=true:{SCRAPEOPS_API_KEY}@proxy.scrapeops.io:5353',
+        'no_proxy': 'localhost:127.0.0.1'
+    }
+}
+
+## Store The Scraped Data In This List
+scraped_quotes = []
+
+## Urls to Scrape
+url_list = [
+    f'https://market.yandex.ru/product--smartfon-samsung-galaxy-a15-4g/44500479/offers?cpa=1&how=aprice&grhow=supplier&sku=102627410013&uniqueId=62878861&local-offers-first=0{"&how=aprice"}',
+    f'https://market.yandex.ru/product--smartfon-samsung-galaxy-a15-4g/44500479/offers?cpa=1&how=aprice&grhow=supplier&sku=102627410013&uniqueId=62878861&local-offers-first=0{"&how=aprice"}',
+    f'https://market.yandex.ru/product--smartfon-samsung-galaxy-a15-4g/44500479/offers?cpa=1&how=aprice&grhow=supplier&sku=102627410013&uniqueId=62878861&local-offers-first=0{"&how=aprice"}',
+]
+
+## Optional --> define Selenium options
+option = webdriver.ChromeOptions()
+option.add_argument('--headless')  ## --> comment out to see the browser launch.
+option.add_argument('--no-sandbox')
+option.add_argument('--disable-dev-sh-usage')
+option.add_argument('--blink-settings=imagesEnabled=false')
+
+## Set up Selenium Chrome driver
+driver = webdriver.Chrome(
+    options=option,
+    seleniumwire_options=proxy_options)
+
+
+### Our Helper Functions ###
+def get_page_url_status_code(url, driver):
+    page_url_status_code = 500
+
+    # Access requests via the `requests` attribute
+    for request in driver.requests:
+
+        if request.response:
+            # show all urls that are requested per page load
+            print(
+                request.url,
+                request.response.status_code,
+                request.response.headers['Content-Type']
+            )
+
+        if request.url == url:
+            page_url_status_code = request.response.status_code
+
+    return page_url_status_code
+
+
+## customise this list with what ever your page does not need
+def interceptor(request):
+    # stopping images from being requested
+    # in case any are not blocked by imagesEnabled=false in the webdriver options above
+    if request.path.endswith(('.png', '.jpg', '.gif')):
+        request.abort()
+
+    # stopping css from being requested
+    if request.path.endswith(('.css')):
+        request.abort()
+
+    # stopping fonts from being requested
+    if 'fonts.' in request.path:  # eg fonts.googleapis.com or fonts.gstatic.com
+        request.abort()
+
+
+### End Of Helper Functions ###
+
+
+## looping through our list of urls
+for url in url_list:
+
+    ## manage retries in case we get a 500/401 response etc
+    for _ in range(NUM_RETRIES):
+        try:
+            ## add an interceptor to make sure we don't request un-needed files (css or images) - saves money!
+            driver.request_interceptor = interceptor
+
+            driver.get(url)
+            driver.save_screenshot('123.png')
+            status_code = get_page_url_status_code(url, driver)
+
+            if status_code in [200, 404]:
+                ## escape for loop if the API returns a successful response
+                break
+        except Exception as e:
+            print("error", e)
+            driver.close()
+
+    if status_code == 200:
+        ## Feed HTML response into BeautifulSoup
+        html_response = driver.page_source
+        soup = BeautifulSoup(html_response, "html.parser")
+
+        ## Find all quotes sections
+        quotes_sections = soup.find_all('div', class_="quote")
+
+        ## loop through each quotes section and extract the quote and author
+        for quote_block in quotes_sections:
+            quote = quote_block.find('span', class_='text').text
+            author = quote_block.find('small', class_='author').text
+
+            ## Add scraped data to "scraped_quotes" list
+            scraped_quotes.append({
+                'quote': quote,
+                'author': author
+            })
+
+print(scraped_quotes)

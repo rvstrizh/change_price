@@ -10,7 +10,7 @@ from threading import Thread
 from bot_change_price import dp
 from connect_sql import read_sql, write_sql
 from driver import installation
-from parse import Parse_Page
+from parse import Parse_Page_SMM
 from calculation_purchase import Search_Prices_For_Purchase
 from calculation_price import Price_Change
 from settings import CaptchaError, category_dict, bot, open_json, got_notice, past_site
@@ -59,16 +59,18 @@ class Main:
         self.step = None
         self.manager = None
         self.manager_tel_id = None
+        self.url_ym = None
         # self.user_agent = installation()
         self.user_agent ='Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36'
 
     def parse(self, url_smm):
         while True:
             try:
-                price_list = Parse_Page(url_smm, self.user_agent).show_shop()
-                return price_list
+                price_list = Parse_Page_SMM(url_smm, self.user_agent).show_shop()
             except CaptchaError:
                 self.user_agent = installation()
+                price_list = Parse_Page_SMM(url_smm, self.user_agent).show_shop()
+            return price_list
 
     def new_price(self, price_list):
         ######
@@ -86,8 +88,8 @@ class Main:
 
     def run(self):
         bot.set_webhook()
-        # for i in range(1):
-        while True:
+        for i in range(1):
+        # while True:
             current_hour = datetime.now().hour
             if 7 <= current_hour < 24:
                 json_file = open_json('bd_sql.json')
@@ -96,6 +98,7 @@ class Main:
                     self.product_id = json_file[0]['product_id']
                     self.category = json_file[0]['category']
                     self.url_smm = json_file[0]['url_SMM']
+                    self.url_ym = 'https://market.yandex.ru/product--vitality-pro-protect-x-clean-d103-413-3/1794050047/offers?grhow=supplier&sku=101884459916&do-waremd5=eBRoIYiItUS-M06915RSUQ&sponsored=1&uniqueId=924574&resale_goods=resale_new&how=aprice&local-offers-first=0&nid=37653872'
                     self.old_my_price = json_file[0]['product_order_levels']
                     self.min_price = json_file[0]['min_price_smm']
                     self.max_price = json_file[0]['max_price_SMM']
@@ -103,6 +106,8 @@ class Main:
                     self.step = json_file[0]['step']
                     self.stock = json_file[0]['product_in_stock']
                     self.old_my_price = int(self.old_my_price.replace("0,", ""))
+                    if not self.step:
+                        self.step = 10
                     try:
                         self.manager = [man for man, cat in category_dict.items() if self.category in cat][0]
                         self.manager_tel_id = [k for k, v in open_json('data.json').items() if v == self.manager][0]
@@ -146,7 +151,10 @@ class Main:
                         if got_notice(self.product_id,
                                       self.product_name):  # что бы не спамить, а уведомление будет один раз в день
                             bot.send_message(self.manager_tel_id, f'В товаре {self.product_name} sku {past_site(self.product_id)}\nНе заполнено url_smm', parse_mode='HTML')
-                    write_json(json_file[1:])
+                    # if self.url_ym:
+                    #     price_list = self.parse_ym(self.url_ym)
+
+                    # write_json(json_file[1:])
                 else:
                     bot.send_message(1315757744,
                                      f'Прошел круг')

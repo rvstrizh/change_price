@@ -48,7 +48,6 @@ class Price_Change:
     def filter_sensitivity(self):
         try:
             self.preparing_list()
-            print('self.price_list', self.price_list)
             if len(self.price_list) == 0:  # если нет конкурентов ставим максимальную цену
                 return self.max_price
 

@@ -10,17 +10,28 @@ from bs4 import BeautifulSoup
 from settings import login_proxy, password_proxy, proxy
 
 
-def installation():
+def installation(market="https://megamarket.ru"):
+    count = 0
     while True:
+
         try:
-            print('test')
+            count += 1
+            print(f'test-{count}')
             useragent = fu.UserAgent().random
             b = ChromeExtended(proxy=f"http://{login_proxy}:{password_proxy}@{proxy}", useragent=useragent)
-            b.get("https://megamarket.ru")
 
+            b.get(market)
+            b.save_screenshot(f'{count}.png')
             page = b.page_source
             soup = BeautifulSoup(page, 'lxml')
-            pr = soup.find_all('div', {'class': 'header-logo'})
+            if "https://megamarket.ru" in market:
+                pr = soup.find_all('div', {'class': 'header-logo'})
+            else:
+                pr = soup.find_all('a', {'aria-label': 'Yandex'})
+                if not pr:
+                    print('stop')
+                    print(useragent)
+                    return useragent
             if pr:
                 print('stop')
                 print(useragent)
@@ -61,9 +72,10 @@ class ChromeExtended(webdriver.Chrome):
             f.write(manifest_json)
         with open(f"{extensionDirpath}/background.js", "w", encoding="utf8") as f:
             f.write(background_js)
+        options.page_load_strategy = 'eager'
         options.add_argument('--headless')
         options.add_argument('--no-sandbox')
-        options.add_argument(f"--load-extension={extensionDirpath}")
+        # options.add_argument(f"--load-extension={extensionDirpath}")
         options.add_argument(f'--user-agent={self.useragent}')
 
 
@@ -72,3 +84,5 @@ def find_driver(user_agent):
     return driver
 
 
+if __name__ == "__main__":
+    installation('https://market.yandex.ru/?wprid=1722793746428774-16974013121432865173-balancer-l7leveler-kubr-yp-vla-31-BAL&utm_source_service=web&clid=703&src_pof=703&icookie=02hw1ZTZVrpJzWj657WRpext3VK7q%2FdmX9xE0stJ4dEdIt%2FEquK3UIt%2BKfrYH6cKTfu5XGMpWADMzbvMmIXdheDvPLg%3D&baobab_event_id=lzfuwziw7b')
