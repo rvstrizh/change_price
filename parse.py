@@ -2,7 +2,6 @@ import re
 
 from bs4 import BeautifulSoup
 
-from driver_2 import find_driver, installation
 from settings import min_rating, CaptchaError
 
 
